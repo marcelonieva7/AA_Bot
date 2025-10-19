@@ -1,0 +1,160 @@
+from fastembed import SparseTextEmbedding
+from qdrant_client import QdrantClient, models
+from tqdm import tqdm
+
+from src.config.envs import settings
+
+class Qdrant_DB():
+  def __init__(self, qdrant_url, qdrant_api_key, collection, dense_model, sparse_model):
+    self.collection = collection
+    self.dense_model = dense_model
+    self.sparse_model = sparse_model
+    self.client = QdrantClient(
+      url=qdrant_url,
+      api_key=qdrant_api_key
+    )
+
+  def create_collection(self):
+    # if collection already exits, delete it
+    for c in self.client.get_collections().collections:
+      if self.collection == c.name:
+        self.client.delete_collection(collection_name=self.collection)
+
+    self.client.create_collection(
+      collection_name=self.collection,
+      vectors_config={
+        "dense": models.VectorParams(
+          size=self.dense_model['dimensions'],
+          distance=models.Distance.COSINE
+        )
+      },
+      sparse_vectors_config={
+        "sparse": models.SparseVectorParams(
+          modifier=models.Modifier.IDF,
+        )
+      }
+    )
+    print(f'Collection created: {self.collection}')
+
+  def create_points(self, documents):
+    points = []
+    id = 0
+
+    for doc in documents:
+      text=doc['question'] + ' ' + doc['answer']
+      sparse_embeddings = list(self.sparse_model.embed(text))[0]
+      point = models.PointStruct(
+        id=id,
+        vector={
+          'dense': models.Document(text=text, model=self.dense_model['name']),
+          'sparse': models.SparseVector(
+            indices=sparse_embeddings.indices.tolist(),
+            values=sparse_embeddings.values.tolist(),
+          )
+        },
+        payload={
+          "answer": doc['answer'],
+          "question": doc['question'],
+          "source": doc['source'],
+          "topic": doc['topic'],
+          "id": doc['id']
+        }
+      )
+      points.append(point)
+
+      id += 1
+    
+    return points
+
+  def upsert_points(self, points, batch_size=10):
+    for i in tqdm(range(0, len(points), batch_size)):
+      batch = points[i:i + batch_size]
+      self.client.upsert(
+        collection_name=self.collection,
+        points=batch,
+        wait=True
+      )
+
+  def _search_builder(self, args):
+    results = self.client.query_points(
+      collection_name=self.collection,
+      with_payload=True,
+      **args,
+    )
+    return [r.payload for r in results.points]
+
+  def _build_semantic_args(self, query, limit):
+    args = {
+      'limit': limit,
+      'query': models.Document(
+        text=query,
+        model=self.dense_model['name']
+      ),
+      'using': "dense"
+    }
+    return args
+
+  def _build_lexical_args(self, query, limit):
+    sparse_embeddings = list(self.sparse_model.embed(query))[0]
+    args = {
+      'limit': limit,
+      'query': models.SparseVector(
+        indices=sparse_embeddings.indices.tolist(),
+        values=sparse_embeddings.values.tolist(),
+      ),
+      'using': "sparse"
+    }
+    return args
+
+  def _build_hybrid_args(self, query, limit, fusion_type):
+    fusion = None
+    match fusion_type:
+      case 'DBSF':
+        fusion = models.Fusion.DBSF
+      case 'RRF':
+        fusion = models.Fusion.RRF
+      case _:
+        raise Exception(f'invalid fusion type {fusion_type}')
+
+    semantic = self._build_semantic_args(query, limit=limit*2)
+    lexical = self._build_lexical_args(query, limit=limit*2)
+    args = {
+      'prefetch': [
+        models.Prefetch(**semantic),
+        models.Prefetch(**lexical)
+      ],
+      'query': models.FusionQuery(fusion=fusion),
+      'limit': limit
+    }
+    return args
+
+  def search(self, query_txt, limit=5, type='semantic', fusion='DBSF'):
+    args = {}
+    match type:
+      case 'semantic':
+        args = self._build_semantic_args(query_txt, limit)
+      case 'lexical':
+        args = self._build_lexical_args(query_txt, limit)
+      case 'hybrid':
+        args = self._build_hybrid_args(query_txt, limit, fusion)
+      case _:
+        raise Exception(f'invalid search type {type}')
+
+    results = self._search_builder(args)    
+    return results
+
+COLLECTION_NAME = "FAQ_AA"
+DENSE_MODEL = {
+  'name': 'jinaai/jina-embeddings-v2-base-es',
+  'dimensions': 768
+}
+SPARSE_MODEL_NAME = 'Qdrant/bm25'
+sparse_model = SparseTextEmbedding(model_name=SPARSE_MODEL_NAME)
+
+qdrant_db = Qdrant_DB(
+  qdrant_api_key=settings.QDRANT_API_KEY,
+  qdrant_url=settings.QDRANT_URL,
+  collection=COLLECTION_NAME,
+  dense_model=DENSE_MODEL,
+  sparse_model=sparse_model
+)
