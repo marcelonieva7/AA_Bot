@@ -773,7 +773,7 @@ Example interaction showing empathetic and informative responses:
 
 ## 🎥 Demo Video
 
-> **Coming Soon**: A video walkthrough demonstrating the chatbot's capabilities, retrieval process, and evaluation results will be added before final project submission.
+[https://www.loom.com/share/6d4af45916234437940b104dc607d170](https://www.loom.com/share/6d4af45916234437940b104dc607d170)
 
 ---
 
@@ -912,3 +912,4 @@ If you or someone you know is struggling with alcohol use:
 <p align="center">
   <strong>Built with ❤️ to help people find information about recovery</strong>
 </p>
+
