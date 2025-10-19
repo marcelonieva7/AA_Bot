@@ -437,7 +437,10 @@
                 }
             });
             clearChatButton.addEventListener('click', function() {
-                chatContainer.innerHTML = '';
+                const messagesContainer = document.querySelector('.chat-container .space-y-4');
+                if (messagesContainer) {
+                    messagesContainer.innerHTML = ''; // Solo vacía los mensajes
+                }
                 chatContainer.scrollTop = chatContainer.scrollHeight;
                 storageHistory().clear();
                 clearChatButton.classList.add('hidden');
