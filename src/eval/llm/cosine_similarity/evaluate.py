@@ -1,5 +1,6 @@
 import json
 import pathlib
+import os
 
 import pandas as pd
 from fastembed import TextEmbedding
@@ -47,7 +48,15 @@ models_answers = [
 
 BASE_DIR = pathlib.Path(__file__).resolve().parent
 
+# create and save results
 for m in models_answers:
+    FILE = f'similarity_{m["name"]}.csv'
+    if FILE in os.listdir(BASE_DIR):
+        df = pd.read_csv(BASE_DIR / FILE)
+        print(f'\nResults Similarity for {m['name']}')
+        print(df.describe())
+        continue
+
     similarity = []
 
     for doc in tqdm(m['answers'].values()):
@@ -58,4 +67,4 @@ for m in models_answers:
     print(m['name'])
     print(df.describe())
     
-    df.to_csv(BASE_DIR / f'similarity_{m["name"]}.csv', index=False)
+    df.to_csv(BASE_DIR / FILE, index=False)
