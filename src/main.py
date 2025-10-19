@@ -1,11 +1,3 @@
-from qdrant_client import QdrantClient
-
-def main():
-    print("Hello from capstone!")
-    client = QdrantClient(url="http://localhost:6333")
-
-    print(client.get_collections())
-
-
 if __name__ == "__main__":
-    main()
+  import uvicorn
+  uvicorn.run('src.server.app:app', host="0.0.0.0", port=8000)
