@@ -2,6 +2,7 @@ import json
 import pathlib
 import os
 
+import pandas as pd
 from tqdm import tqdm
 
 from src.LLM.main import chat
@@ -51,19 +52,16 @@ for m in MODELS:
     for p in PROMPTS:
         results = []
         file_name = f'{m["name"]}_{p["name"]}.json'
-        if file_name in os.listdir(BASE_DIR):
-            print(f'Skipping {m["name"]} with {p["name"]}')
-            continue
-        
-        print(f'Evaluating {m["name"]} with {p["name"]}')
-        for answer in tqdm(list(m["answers"].values())):
-            results.append(get_evaluation(answer, p["template"], answer["document"]))
+        if file_name not in os.listdir(BASE_DIR):
+                    
+            print(f'Evaluating {m["name"]} with {p["name"]}')
+            for answer in tqdm(list(m["answers"].values())):
+                results.append(get_evaluation(answer, p["template"], answer["document"]))
 
-        with open(BASE_DIR / file_name, 'w') as f:
-            json.dump(results, f)
+            with open(BASE_DIR / file_name, 'w') as f:
+                json.dump(results, f)
 
-
-
-
-    
-    
+        df_eval = pd.read_json(BASE_DIR / file_name)
+        print(file_name, '\n')
+        print(df_eval.Relevance.value_counts())
+        print('='*30)
