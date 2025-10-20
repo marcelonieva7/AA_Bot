@@ -20,6 +20,10 @@ The chatbot leverages a **Retrieval-Augmented Generation (RAG)** pipeline built 
   <em>AA Assistant</em>
 </p>
 
+#### Cloud deployment on [Koyeb](https://www.koyeb.com/)
+
+[https://pale-sisely-arac-347f0d7a.koyeb.app/](https://pale-sisely-arac-347f0d7a.koyeb.app/)
+
 ---
 
 ## 🎯 Project Goals & LLM Zoomcamp Evaluation Criteria
@@ -912,4 +916,5 @@ If you or someone you know is struggling with alcohol use:
 <p align="center">
   <strong>Built with ❤️ to help people find information about recovery</strong>
 </p>
+
 
