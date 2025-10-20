@@ -23,7 +23,7 @@ class ChatRequest(BaseModel):
 @app.post("/chat")
 async def chat_endpoint(chat_request: ChatRequest):
     try:
-        response = rag(chat_request.query)
+        response = rag(query=chat_request.query)
         return JSONResponse({"answer": response})
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)

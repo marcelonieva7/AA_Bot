@@ -7,12 +7,11 @@ from tqdm import tqdm
 from src.config.utils import load_ground_truth, load_FAQS
 from src.LLM.main import Models
 from src.RAG.main import rag
-from src.RAG.prompts import system_prompt_v1
 
 faqs_idx = load_FAQS(idx=True)
 ground_truth = load_ground_truth()
 
-def generate_answers(system_prompt, ground_truth, model):
+def generate_answers(ground_truth, model):
 	print(f'Generating answers for model: {model.name}')
 	answers = {}
 	BASE_DIR = pathlib.Path(__file__).parent.resolve()
@@ -25,7 +24,7 @@ def generate_answers(system_prompt, ground_truth, model):
 
 	def get_answer(query, retries=5):  
 		try:
-			answer_llm = rag(query=query, system_prompt=system_prompt, model=model.value)
+			answer_llm = rag(query=query, model=model.value)
 			return answer_llm
 		except Exception:
 			retries -= 1
@@ -55,4 +54,4 @@ def generate_answers(system_prompt, ground_truth, model):
 			json.dump(answers, file)
   
 for m in Models:
-    generate_answers(system_prompt=system_prompt_v1, ground_truth=ground_truth, model=m)
+    generate_answers(ground_truth=ground_truth, model=m)

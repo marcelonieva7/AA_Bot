@@ -1,10 +1,9 @@
 from src.config.db import qdrant_db
 from src.LLM.main import chat
-from src.RAG.prompts import build_user_prompt, system_prompt_v1
+from src.RAG.prompts import system_prompt_v1
 
 def rag(query, model='meta/llama-4-scout-17b-16e-instruct'):
     retrival = qdrant_db.search(query, limit=10, type='hybrid', fusion='RRF')
-    user = build_user_prompt(query, retrival)
-    answer = chat(system=system_prompt_v1, user=user, model=model)
+    answer = chat(system=system_prompt_v1(retrival), user=query, model=model)
 
     return answer
