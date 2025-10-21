@@ -96,9 +96,10 @@ async def chat_endpoint(chat_request: ChatRequest, request: Request):
             )
             span.set_attribute("chat.response_preview", response[:200])
             span.set_status(Status(StatusCode.OK))
+            trace_id = format(span.get_span_context().trace_id, "032x")
             logger.info("✅ Response generated")
 
-            return JSONResponse({"answer": response})
+            return JSONResponse({"answer": response, "trace_id": trace_id})
         except Exception as e:
             logger.error(f"❌ Error: {e}")
             span.record_exception(e)
@@ -123,3 +124,25 @@ async def list_collections():
         }
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
+
+class FeedbackRequest(BaseModel):
+    feedback: str  # 'positive' o 'negative'
+    question: str
+    answer: str
+    trace_id: str | None = None
+
+@app.post("/feedback")
+async def feedback_endpoint(feedback_request: FeedbackRequest, request: Request):
+    with tracer.start_as_current_span("api.feedback") as span:
+        if request.client:
+            span.set_attribute("request.client_ip", request.client.host)
+        span.set_attribute("feedback.value", feedback_request.feedback)
+        span.set_attribute("feedback.question_preview", feedback_request.question[:200])
+        span.set_attribute("feedback.answer_preview", feedback_request.answer[:200])
+        if feedback_request.trace_id:
+            span.set_attribute("related_trace_id", feedback_request.trace_id)
+
+        logger.info(f"Received feedback: {feedback_request.feedback} for question: {feedback_request.question[:50]}...")
+
+        span.set_status(Status(StatusCode.OK))
+        return JSONResponse({"status": "ok"})

@@ -1,503 +1,276 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AA FAQ Chatbot</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.7/dist/purify.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#0a89c3',
-                        secondary: '#F5F5F5',
-                        accent: '#0763af',
-                        charcoal: '#333333',
-                        'medium-gray': '#666666',
-                        'soft-white': '#FAFAFA'
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'Roboto', 'sans-serif']
-                    },
-                    animation: {
-                        bounce: 'bounce 1s infinite'
-                    },
-                    keyframes: {
-                        bounce: {
-                            '0%, 100%': { transform: 'translateY(0)' },
-                            '50%': { transform: 'translateY(-5px)' }
-                        }
-                    }
-                }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AA FAQ Chatbot</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.7/dist/purify.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#0a89c3',
+            secondary: '#F5F5F5',
+            accent: '#0763af',
+            charcoal: '#333333',
+            'medium-gray': '#666666',
+            'soft-white': '#FAFAFA'
+          },
+          fontFamily: {
+            sans: ['Inter', 'Roboto', 'sans-serif']
+          },
+          animation: {
+            bounce: 'bounce 1s infinite'
+          },
+          keyframes: {
+            bounce: {
+              '0%, 100%': { transform: 'translateY(0)' },
+              '50%': { transform: 'translateY(-5px)' }
             }
-        }
-    </script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #FAFAFA;
-        }
-
-        .chat-container {
-            height: calc(100vh - 180px);
-        }
-
-        .message {
-            max-width: 80%;
-            border-radius: 18px;
-        }
-
-        .user-message {
-            border-bottom-right-radius: 4px;
-        }
-
-        .bot-message {
-            border-bottom-left-radius: 4px;
-        }
-
-
-        .pulse {
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(32, 178, 170, 0.4); }
-            70% { box-shadow: 0 0 0 10px rgba(32, 178, 170, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(32, 178, 170, 0); }
-        }
-
-        .feature-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
-        }
-
-        .transition-transform {
-            transition: transform 0.3s ease;
-        }
-
-        /* Sidebar styles */
-        .sidebar {
-            transition: all 0.3s ease-in-out;
-            width: 350px;
-            max-width: 350px;
-        }
-
-        .sidebar.collapsed {
-            width: 70px;
-            max-width: 70px;
-        }
-
-        .sidebar-content {
-            transition: opacity 0.2s ease-in-out;
-        }
-
-        .sidebar.collapsed .sidebar-content {
-            opacity: 0;
-            visibility: hidden;
-            height: 0;
-            overflow: hidden;
-        }
-
-        .sidebar-toggle {
-            transition: transform 0.3s ease;
-        }
-
-        .sidebar.collapsed .sidebar-toggle {
-            transform: rotate(180deg);
-        }
-
-        .sidebar.collapsed .feature-card:not(:hover) {
-            transform: none;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-
-        .sidebar.collapsed .feature-card:hover {
-            transform: translateX(5px);
-        }
-
-        .line {
-          opacity: 0;
-          transform: translateY(4px);
-          animation: fadeIn 0.9s ease forwards;
-        }
-
-        @keyframes fadeIn {
-          to {
-            opacity: 1;
-            transform: translateY(0);
           }
         }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
-    </style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #FAFAFA;
+    }
+
+    .chat-container {
+      height: calc(100vh - 180px);
+    }
+
+    .message {
+      max-width: 80%;
+      border-radius: 18px;
+    }
+
+    .user-message {
+      border-bottom-right-radius: 4px;
+    }
+
+    .bot-message {
+      border-bottom-left-radius: 4px;
+    }
+
+    .feedback-icons i {
+      cursor: pointer;
+      transition: color 0.2s ease, transform 0.2s ease;
+    }
+
+    .feedback-icons i:hover {
+      transform: scale(1.1);
+    }
+
+    .feedback-disabled i {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+  </style>
 </head>
 <body class="bg-slate-200 text-charcoal">
-    <!-- Header -->
-    <header class="bg-primary text-white py-4 px-4 md:px-8 shadow-md">
-        <div class="container mx-auto flex flex-col md:flex-row justify-between items-center">
-            <div class="flex items-center mb-4 md:mb-0">
-                <div class="bg-accent p-3 rounded-full mr-4 pulse">
-                    <i class="fas fa-comments text-white text-2xl"></i>
-                </div>
-                <div>
-                    <h1 class="text-2xl font-bold">AA FAQ Chatbot</h1>
-                    <p class="text-soft-white text-sm">Support and Information at Your Fingertips</p>
-                </div>
-            </div>
-            <nav class="flex flex-wrap justify-center md:justify-end gap-4">
-                <a href="#" class="text-soft-white hover:text-white transition">Home</a>
-                <a href="#" class="text-soft-white hover:text-white transition">About</a>
-                <a href="#" class="text-soft-white hover:text-white transition">Resources</a>
-                <a href="#" class="text-soft-white hover:text-white transition">Contact</a>
-                <a href="#" class="text-soft-white hover:text-white transition">Privacy</a>
-            </nav>
+  <!-- Header -->
+  <header class="bg-primary text-white py-4 px-4 md:px-8 shadow-md">
+    <div class="container mx-auto flex flex-col md:flex-row justify-between items-center">
+      <div class="flex items-center mb-4 md:mb-0">
+        <div class="bg-accent p-3 rounded-full mr-4 pulse">
+          <i class="fas fa-comments text-white text-2xl"></i>
         </div>
-    </header>
-
-    <!-- Main Content -->
-    <main class="container mx-auto min-h-screen px-4 py-6">
-        <div class="flex justify-center flex-col md:flex-row gap-6 relative">
-            <!-- Features Section -->
-            <div class="sidebar collapsed bg-white rounded-xl shadow-sm p-5 h-fit fixed top-20 left-0 z-50 h-[calc(100vh-120px)] overflow-y-auto">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-bold text-primary sidebar-content">How We Can Help</h2>
-                    <button id="sidebar-toggle" class="sidebar-toggle text-primary">
-                        <i class="fas fa-chevron-left text-xl"></i>
-                    </button>
-                </div>
-
-                <div class="sidebar-content">
-                    <div class="grid grid-cols-1 gap-4">
-                        <div class="feature-card bg-white rounded-xl p-5 shadow-sm transition-transform">
-                            <div class="flex items-center mb-3">
-                                <div class="bg-primary bg-opacity-10 p-3 rounded-lg mr-4">
-                                    <i class="fas fa-map-marker-alt text-primary text-xl"></i>
-                                </div>
-                                <h3 class="text-lg font-semibold">Meeting Locators</h3>
-                            </div>
-                            <p class="text-medium-gray">Find AA meetings near you with our interactive map and search tools.</p>
-                        </div>
-
-                        <div class="feature-card bg-white rounded-xl p-5 shadow-sm transition-transform">
-                            <div class="flex items-center mb-3">
-                                <div class="bg-primary bg-opacity-10 p-3 rounded-lg mr-4">
-                                    <i class="fas fa-book-open text-primary text-xl"></i>
-                                </div>
-                                <h3 class="text-lg font-semibold">12 Steps & Traditions</h3>
-                            </div>
-                            <p class="text-medium-gray">Learn about the principles that guide recovery in Alcoholics Anonymous.</p>
-                        </div>
-
-                        <div class="feature-card bg-white rounded-xl p-5 shadow-sm transition-transform">
-                            <div class="flex items-center mb-3">
-                                <div class="bg-primary bg-opacity-10 p-3 rounded-lg mr-4">
-                                    <i class="fas fa-user-plus text-primary text-xl"></i>
-                                </div>
-                                <h3 class="text-lg font-semibold">Getting Started</h3>
-                            </div>
-                            <p class="text-medium-gray">New to AA? Find guidance on how to begin your recovery journey.</p>
-                        </div>
-
-                        <div class="feature-card bg-white rounded-xl p-5 shadow-sm transition-transform">
-                            <div class="flex items-center mb-3">
-                                <div class="bg-primary bg-opacity-10 p-3 rounded-lg mr-4">
-                                    <i class="fas fa-heart text-primary text-xl"></i>
-                                </div>
-                                <h3 class="text-lg font-semibold">Family Resources</h3>
-                            </div>
-                            <p class="text-medium-gray">Support for loved ones and family members of those in recovery.</p>
-                        </div>
-
-                        <div class="feature-card bg-white rounded-xl p-5 shadow-sm transition-transform">
-                            <div class="flex items-center mb-3">
-                                <div class="bg-primary bg-opacity-10 p-3 rounded-lg mr-4">
-                                    <i class="fas fa-exclamation-triangle text-primary text-xl"></i>
-                                </div>
-                                <h3 class="text-lg font-semibold">Crisis Support</h3>
-                            </div>
-                            <p class="text-medium-gray">Immediate help when you need it most - crisis hotlines and resources.</p>
-                        </div>
-                    </div>
-
-                    <div class="mt-6 bg-white rounded-xl p-5 shadow-sm">
-                        <h3 class="text-lg font-semibold text-primary mb-3">Emergency Resources</h3>
-                        <p class="text-medium-gray mb-3">If you're in crisis or having thoughts of self-harm:</p>
-                        <ul class="space-y-2">
-                            <li class="flex items-center">
-                                <i class="fas fa-phone text-accent mr-2"></i>
-                                <span class="font-medium">Suicide & Crisis Line: 988</span>
-                            </li>
-                            <li class="flex items-center">
-                                <i class="fas fa-phone text-accent mr-2"></i>
-                                <span class="font-medium">Poison Control: 1-800-222-1222</span>
-                            </li>
-                            <li class="flex items-center">
-                                <i class="fas fa-ambulance text-accent mr-2"></i>
-                                <span class="font-medium">Emergency Services: 911</span>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Chat Interface -->
-            <div class="w-full md:w-2/3 flex flex-col">
-                <div class="bg-white rounded-xl shadow-md overflow-hidden flex flex-col h-full">
-                    <div class="bg-primary p-4 relative">
-                        <h2 class="text-xl font-bold text-white">AA FAQ Chatbot</h2>
-                        <p class="text-soft-white text-sm">Ask questions about AA, find meetings, or get support</p>
-                        <i
-                          id="clear-chat"
-                          class="fa fa-trash text-white cursor-pointer absolute top-6 right-6 text-2xl hidden hover:text-red-500 transition "
-                          aria-hidden="true"
-                          title="Clear Chat History"
-                        >
-                        </i>
-                    </div>
-
-                    <div class="chat-container overflow-y-auto p-4 bg-secondary flex-1">
-                        <!-- Chat messages will appear here -->
-                        <div class="space-y-4">
-                        </div>
-                    </div>
-
-                    <div class="p-4 bg-white border-t border-gray-200">
-                        <div class="flex">
-                            <input
-                                type="text"
-                                class="flex-1 border border-gray-300 rounded-l-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                                placeholder="Type your question here..."
-                            >
-                            <button id="send-button" class="bg-primary hover:bg-sky-400 text-white font-semibold py-3 px-6 rounded-r-lg transition">
-                                Send
-                            </button>
-                        </div>
-                        <div class="mt-2 text-xs text-medium-gray text-center">
-                            This chat is anonymous. Your conversations are not stored or shared.
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Additional Resources -->
-                <div class="mt-6 bg-white rounded-xl p-5 shadow-sm">
-                    <h3 class="text-lg font-semibold text-primary mb-3">Additional Resources</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div class="border border-gray-200 rounded-lg p-4">
-                            <h4 class="font-medium mb-2">Literature</h4>
-                            <p class="text-sm text-medium-gray">"Alcoholics Anonymous" (Big Book), "Twelve Steps and Twelve Traditions"</p>
-                        </div>
-                        <div class="border border-gray-200 rounded-lg p-4">
-                            <h4 class="font-medium mb-2">Online Meetings</h4>
-                            <p class="text-sm text-medium-gray">Join virtual AA meetings from anywhere in the world</p>
-                        </div>
-                        <div class="border border-gray-200 rounded-lg p-4">
-                            <h4 class="font-medium mb-2">Service Opportunities</h4>
-                            <p class="text-sm text-medium-gray">Learn how to help others in their recovery journey</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div>
+          <h1 class="text-2xl font-bold">AA FAQ Chatbot</h1>
+          <p class="text-soft-white text-sm">Support and Information at Your Fingertips</p>
         </div>
-    </main>
+      </div>
+    </div>
+  </header>
 
-    <!-- Footer -->
-    <footer class="bg-primary text-soft-white py-6 px-4 mt-8">
-        <div class="container mx-auto">
-            <div class="flex flex-col md:flex-row justify-between items-center">
-                <div class="mb-4 md:mb-0">
-                    <p class="text-center md:text-left">© 2023 AA FAQ Chatbot. All rights reserved.</p>
-                    <p class="text-sm text-soft-white mt-1">This site is not affiliated with Alcoholics Anonymous World Services, Inc.</p>
-                </div>
-                <div class="flex space-x-4">
-                    <a href="#" class="text-soft-white hover:text-white transition">Privacy Policy</a>
-                    <a href="#" class="text-soft-white hover:text-white transition">Disclaimer</a>
-                    <a href="#" class="text-soft-white hover:text-white transition">Feedback</a>
-                </div>
+  <!-- Main -->
+  <main class="container mx-auto min-h-screen px-4 py-6">
+    <div class="flex justify-center flex-col md:flex-row gap-6 relative">
+      <div class="w-full md:w-2/3 flex flex-col">
+        <div class="bg-white rounded-xl shadow-md overflow-hidden flex flex-col h-full">
+          <div class="bg-primary p-4 relative">
+            <h2 class="text-xl font-bold text-white">AA FAQ Chatbot</h2>
+            <p class="text-soft-white text-sm">Ask questions about AA, find meetings, or get support</p>
+            <i id="clear-chat"
+               class="fa fa-trash text-white cursor-pointer absolute top-6 right-6 text-2xl hidden hover:text-red-500 transition"
+               title="Clear Chat History"></i>
+          </div>
+
+          <div class="chat-container overflow-y-auto p-4 bg-secondary flex-1">
+            <div class="space-y-4"></div>
+          </div>
+
+          <div class="p-4 bg-white border-t border-gray-200">
+            <div class="flex">
+              <input type="text"
+                     class="flex-1 border border-gray-300 rounded-l-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                     placeholder="Type your question here...">
+              <button id="send-button"
+                      class="bg-primary hover:bg-sky-400 text-white font-semibold py-3 px-6 rounded-r-lg transition">
+                Send
+              </button>
             </div>
-            <div class="mt-4 text-center text-sm text-soft-white">
-                <p>This site is for informational purposes only. It does not provide medical advice. If you are experiencing a medical emergency, please call 911.</p>
-            </div>
+          </div>
         </div>
-    </footer>
+      </div>
+    </div>
+  </main>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const chatContainer = document.querySelector('.chat-container');
-            const inputField = document.querySelector('input[type="text"]');
-            const sendButton = document.querySelector('#send-button');
-            const clearChatButton = document.querySelector('#clear-chat');
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const chatContainer = document.querySelector('.chat-container');
+      const inputField = document.querySelector('input[type="text"]');
+      const sendButton = document.querySelector('#send-button');
+      const clearChatButton = document.querySelector('#clear-chat');
 
-            // load history
-            const history = storageHistory().get();
-            history.forEach(chat => {
-              if (chat.type === 'user') {
-                renderChat().userMessage(chat.text);
-              } else if (chat.type === 'bot') {
-                renderChat().botMessage(chat.text);
-              }
+      const history = storageHistory().get();
+      history.forEach(chat => {
+        if (chat.type === 'user') renderChat().userMessage(chat.text);
+        else if (chat.type === 'bot') renderChat().botMessage(chat.text);
+      });
+      if (history.length > 0) clearChatButton.classList.remove('hidden');
+
+      async function sendMessage() {
+        const message = inputField.value.trim();
+        if (!message) return;
+
+        inputField.disabled = true;
+        sendButton.disabled = true;
+        inputField.value = '';
+
+        renderChat().userMessage(message);
+        const loader = `
+          <div class="typing-animation flex space-x-1">
+            <div class="typing-dot w-2 h-2 bg-accent rounded-full animate-bounce"></div>
+            <div class="typing-dot w-2 h-2 bg-accent rounded-full animate-bounce delay-75"></div>
+            <div class="typing-dot w-2 h-2 bg-accent rounded-full animate-bounce delay-150"></div>
+          </div>
+        `;
+        const botDiv = document.createElement('div');
+        botDiv.className = 'flex justify-start';
+        const botMsg = document.createElement('div');
+        botMsg.className = 'message bg-white p-4 rounded-2xl rounded-tl-none';
+        botMsg.innerHTML = loader;
+        botDiv.appendChild(botMsg);
+        document.querySelector('.chat-container .space-y-4').appendChild(botDiv);
+        await sendPrompt(message, botMsg);
+      }
+
+      async function sendPrompt(prompt, botDiv) {
+        try {
+            const response = await fetch("/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ query: prompt })
             });
-            if (history.length > 0) {
-              clearChatButton.classList.remove('hidden');
-            }
+            const data = await response.json();
+            const answer = data.answer || data.error || "No response";
+            const traceId = data.trace_id || null;  // <- recibimos el trace_id
+            const html = DOMPurify.sanitize(marked.parse(answer));
+            botDiv.innerHTML = html;
 
-            // Sidebar toggle functionality
-            const sidebar = document.querySelector('.sidebar');
-            const sidebarToggle = document.getElementById('sidebar-toggle');
+            // Add feedback icons
+            const feedbackDiv = document.createElement("div");
+            feedbackDiv.className = "feedback-icons mt-3 flex gap-3 text-gray-400 text-lg";
+            feedbackDiv.innerHTML = `
+                <i class="fa-regular fa-thumbs-up hover:text-green-500" data-feedback="positive"></i>
+                <i class="fa-regular fa-thumbs-down hover:text-red-500" data-feedback="negative"></i>
+            `;
+            botDiv.appendChild(feedbackDiv);
 
-            sidebarToggle.addEventListener('click', function() {
-              sidebar.classList.toggle('collapsed');
+            feedbackDiv.addEventListener("click", async (e) => {
+                const target = e.target;
+                if (!target.dataset.feedback) return;
+
+                const feedback = target.dataset.feedback;
+                await sendFeedback(feedback, prompt, answer, traceId);
+
+                feedbackDiv.classList.add("feedback-disabled");
+                target.classList.add(feedback === "positive" ? "text-green-500" : "text-red-500");
             });
 
-            // Auto-scroll to bottom of chat
+            storageHistory().append({ type: 'user', text: prompt });
+            storageHistory().append({ type: 'bot', text: answer });
+
+            inputField.disabled = false;
+            sendButton.disabled = false;
+            clearChatButton.classList.remove('hidden');
             chatContainer.scrollTop = chatContainer.scrollHeight;
-
-            // Send message function
-            async function sendMessage() {
-                const message = inputField.value.trim();
-                if (!message) return;
-
-                inputField.disabled = true;
-                sendButton.disabled = true;
-                // clear input & scroll
-                inputField.value = '';
-                chatContainer.scrollTop = chatContainer.scrollHeight;
-                // add user message to DOM
-                renderChat().userMessage(message);
-
-                const loader = `
-                  <div class="typing-animation flex space-x-1">
-                    <div class="typing-dot w-2 h-2 bg-accent rounded-full animate-bounce"></div>
-                    <div class="typing-dot w-2 h-2 bg-accent rounded-full animate-bounce delay-75"></div>
-                    <div class="typing-dot w-2 h-2 bg-accent rounded-full animate-bounce delay-150"></div>
-                  </div>
-                `
-                
-                // add bot message to DOM + history
-                const botDiv = document.createElement('div');
-                botDiv.className = 'flex justify-start';
-                const botMsg = document.createElement('div')
-                botMsg.className = 'message bg-white p-4 rounded-2xl rounded-tl-none';
-                botMsg.innerHTML = loader
-                botDiv.appendChild(botMsg);
-                document.querySelector('.chat-container .space-y-4').appendChild(botDiv);
-
-                await sendPrompt(message, botMsg)
-            }
-            async function sendPrompt(prompt, botDiv) {
-              try {
-                const response = await fetch("/chat", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ query: prompt })
-                });
-
-                const data = await response.json();
-                const answer = data.answer || data.error || "No response";
-
-                // Convert Markdown to HTML
-                const html = marked.parse(answer);
-                const sanitizedHtml = DOMPurify.sanitize(html);
-
-                botDiv.innerHTML = sanitizedHtml;
-
-                // Save history
-                storageHistory().append({ type: 'user', text: prompt });
-                storageHistory().append({ type: 'bot', text: answer });
-
-                inputField.disabled = false;
-                sendButton.disabled = false;
-                document.querySelector('#clear-chat').classList.remove('hidden');
-                chatContainer.scrollTop = chatContainer.scrollHeight;         
-
-                
-
-                const loader = document.querySelector(".typing-animation");
-                if (loader) {
-                    loader.remove();
-                }
-
-              } catch (error) {
-                console.error("Error:", error);
-                botDiv.innerHTML = "Error: could not fetch response.";
-                inputField.disabled = false;
-                sendButton.disabled = false;
-              }
-            }
-
-            // Event listeners
-            sendButton.addEventListener('click', sendMessage);
-            inputField.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    sendMessage();
-                }
-            });
-            clearChatButton.addEventListener('click', function() {
-                const messagesContainer = document.querySelector('.chat-container .space-y-4');
-                if (messagesContainer) {
-                    messagesContainer.innerHTML = ''; // Solo vacía los mensajes
-                }
-                chatContainer.scrollTop = chatContainer.scrollHeight;
-                storageHistory().clear();
-                clearChatButton.classList.add('hidden');
-            });
-
-
-            marked.setOptions({
-              breaks: true,
-              gfm: true
-            });
-            function renderMD() {
-              const html = marked.parse(md.value);
-              out.innerHTML = DOMPurify.sanitize(html);
-            }
-
-            function renderChat() {
-              const chatContainer = document.querySelector('.chat-container .space-y-4')
-              const createDiv = (className) => {
-                const div = document.createElement('div');
-                div.className = className;
-                return div
-              }
-              return {
-                userMessage: function(message) {
-                  const userDiv = createDiv('flex justify-end');
-                  userDiv.innerHTML = `<div class="message bg-primary text-white p-4 rounded-2xl rounded-tr-none">${message}</div>`;
-                  chatContainer.appendChild(userDiv);
-                },
-                botMessage: function(message) {
-                  const botDiv = createDiv('flex justify-start');
-                  const botMsg = createDiv('message bg-white p-4 rounded-2xl rounded-tl-none');
-                  botMsg.innerHTML = message
-                  botDiv.appendChild(botMsg);                  
-                  chatContainer.appendChild(botDiv);
-                }
-              }
-            }
-        });
-
-        function storageHistory() {
-          const key = 'chat-history';
-          const history = localStorage.getItem(key) || '[]';
-          
-          return {
-            get() {
-              return JSON.parse(history);
-            },
-            append(value) {
-              const history = this.get();
-              history.push(value);
-              localStorage.setItem(key, JSON.stringify(history));
-            },
-            clear() {
-              localStorage.clear(key);
-            }
-          }
+        } catch (error) {
+            console.error("Error:", error);
+            botDiv.innerHTML = "Error: could not fetch response.";
+            inputField.disabled = false;
+            sendButton.disabled = false;
         }
-    </script>
+      }
+
+      async function sendFeedback(feedback, question, answer, traceId) {
+        try {
+            await fetch("/feedback", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ feedback, question, answer, trace_id: traceId })
+            });
+        } catch (err) {
+            console.error("Error sending feedback:", err);
+        }
+      }
+
+      sendButton.addEventListener('click', sendMessage);
+      inputField.addEventListener('keypress', e => { if (e.key === 'Enter') sendMessage(); });
+      clearChatButton.addEventListener('click', function() {
+        const messagesContainer = document.querySelector('.chat-container .space-y-4');
+        if (messagesContainer) messagesContainer.innerHTML = '';
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+        storageHistory().clear();
+        clearChatButton.classList.add('hidden');
+      });
+
+      function renderChat() {
+        const chatContainer = document.querySelector('.chat-container .space-y-4');
+        const createDiv = (className) => {
+          const div = document.createElement('div');
+          div.className = className;
+          return div;
+        };
+        return {
+          userMessage: function(message) {
+            const userDiv = createDiv('flex justify-end');
+            userDiv.innerHTML = `<div class="message bg-primary text-white p-4 rounded-2xl rounded-tr-none">${message}</div>`;
+            chatContainer.appendChild(userDiv);
+          },
+          botMessage: function(message) {
+            const botDiv = createDiv('flex justify-start');
+            const botMsg = createDiv('message bg-white p-4 rounded-2xl rounded-tl-none');
+            botMsg.innerHTML = message;
+            botDiv.appendChild(botMsg);
+            chatContainer.appendChild(botDiv);
+          }
+        };
+      }
+    });
+
+    function storageHistory() {
+      const key = 'chat-history';
+      return {
+        get() { return JSON.parse(localStorage.getItem(key) || '[]'); },
+        append(value) {
+          const history = JSON.parse(localStorage.getItem(key) || '[]');
+          history.push(value);
+          localStorage.setItem(key, JSON.stringify(history));
+        },
+        clear() { localStorage.removeItem(key); }
+      }
+    }
+  </script>
 </body>
 </html>
