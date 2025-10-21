@@ -38,8 +38,9 @@ This project addresses all key evaluation criteria outlined in the LLM Zoomcamp:
 | **Retrieval Strategy** | Hybrid search (semantic + lexical) with DBSF and RRF reranking | `src/RAG/main.py`, `src/eval/retrival/` |
 | **LLM Integration** | NVIDIA NIM endpoints with three models evaluated | `src/LLM/main.py` |
 | **Application Interface** | FastAPI serving custom HTML/CSS/JS interface | `src/server/app.py`, `src/server/templates/` |
-| **Monitoring & Evaluation** | Comprehensive evaluation framework for retrieval and generation quality | `src/eval/` directory |
-| **Documentation** | Detailed README with setup instructions, architecture, and evaluation results | This file |
+| **Evaluation** | Comprehensive evaluation framework: retrieval metrics (Hit Rate, MRR) and generation quality (cosine similarity, LLM-as-judge) across 580 test cases | `src/eval/retrival/`, `src/eval/llm/` |
+| **Monitoring** | OpenTelemetry instrumentation with Arize Phoenix for real-time observability, trace tracking, and user feedback collection | `src/monitoring/tracing.py`, `src/server/app.py` |
+| **Documentation** | Detailed README with setup instructions, architecture, evaluation results, and monitoring guidelines | This file |
 
 ---
 
@@ -109,26 +110,29 @@ data/final/
 ```
 
 ### Project Structure
-
 ```
 src/
 ├── RAG/                          # Retrieval-Augmented Generation
-│   ├── main.py                   # Core RAG orchestration
+│   ├── main.py                   # Core RAG orchestration with tracing
 │   └── prompts.py                # System and user prompts
 ├── LLM/                          # Language Model interface
-│   └── main.py                   # NVIDIA NIM client wrapper
+│   └── main.py                   # NVIDIA NIM client wrapper with token tracking
 ├── eval/                         # Evaluation
 │   ├── retrival/                 # Retrieval evaluation
-│   │   ├── evaluate.py
-│   │   └── metrics.py
+│   │   ├── evaluate.py           # Hit Rate and MRR metrics
+│   │   └── metrics.py            # Metric calculation utilities
 │   ├── llm/                      # Generation evaluation
-│   │   ├── generate_answers.py
-│   │   └── cosine_similarity/
+│   │   ├── generate_answers.py  # Answer generation for evaluation
+│   │   ├── cosine_similarity/   # Semantic similarity evaluation
+│   │   │   └── evaluate.py
+│   │   └── llm_judge/           # LLM-as-judge evaluation
 │   │       └── evaluate.py
-│   ├── generate_ground_truth.py
-│   └── prompts.py
+│   ├── generate_ground_truth.py # Ground truth dataset creation
+│   └── prompts.py               # Evaluation prompts
+├── monitoring/                   # Observability & Tracing
+│   └── tracing.py               # OpenTelemetry + Phoenix setup
 ├── server/                       # Web application
-│   ├── app.py                    # FastAPI server
+│   ├── app.py                    # FastAPI server with traced endpoints
 │   └── templates/
 │       └── index.html            # Frontend interface
 ├── config/                       # Configuration management
@@ -301,6 +305,7 @@ docker compose up --build
 This starts:
 - **FastAPI server** on port 8000
 - **Qdrant vector database** on port 6333
+- **Phoenix Observability and monitoring** on port 6006
 
 ---
 
@@ -763,6 +768,239 @@ This model is currently deployed in production.
 
 ---
 
+## 📊 Monitoring & Observability
+
+The AA Assistant implements comprehensive observability using **OpenTelemetry** and **Arize Phoenix** to track performance, debug issues, and ensure system reliability in production.
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                   User Request                          │
+└────────────────────┬────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────┐
+│              FastAPI Endpoint (/chat)                   │
+│           [Traced: api.chat span]                       │
+│  • Captures: client IP, model, query length             │
+│  • Returns: response + trace_id                         │
+└────────────────────┬────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────┐
+│                RAG Pipeline                             │
+│           [Traced: rag.pipeline span]                   │
+│  • Query preprocessing and validation                   │
+│  • Coordinates retrieval + generation                   │
+└────────────────────┬────────────────────────────────────┘
+                     │
+                     ├──────────────────────────────┐
+                     ▼                              ▼
+         ┌───────────────────────┐    ┌───────────────────────┐
+         │   Database Search     │    │   LLM Generation      │
+         │  [rag_search span]    │    │   [llm.chat span]     │
+         │  • Search type        │    │   • Model name        │
+         │  • Fusion algorithm   │    │   • Token usage       │
+         │  • Documents count    │    │   • Response preview  │
+         │  • Results preview    │    │   • Finish reason     │
+         └───────────────────────┘    └───────────────────────┘
+                     │
+                     ▼
+         ┌───────────────────────┐
+         │  Feedback Collection  │
+         │ [api.feedback span]   │
+         │  • User satisfaction  │
+         │  • Links to trace_id  │
+         └───────────────────────┘
+```
+
+### 🔍 What We Monitor
+
+The system captures detailed telemetry across four key areas:
+
+#### 1. **API Layer Monitoring** (`api.chat` span)
+
+Tracks all incoming requests to the chatbot:
+
+| Attribute | Description | Example |
+|-----------|-------------|---------|
+| `request.client_ip` | User's IP address | `192.168.1.100` |
+| `chat.model` | Selected LLM model | `meta/llama-4-scout-17b-16e-instruct` |
+| `chat.query_preview` | First 200 chars of query | `"¿Qué son los 12 pasos de AA?"` |
+| `chat.query_length` | Total query length | `45` |
+| `chat.response_preview` | First 200 chars of response | `"Los 12 pasos son..."` |
+| `trace_id` | Unique identifier for request | `7f3b2a1c...` |
+
+#### 2. **RAG Pipeline Monitoring** (`rag.pipeline` span)
+
+Oversees the entire RAG process:
+
+| Attribute | Description | Example |
+|-----------|-------------|---------|
+| `rag.query_length` | Query character count | `150` |
+| `rag.query_preview` | First 500 chars of query | Full query text |
+| `span.status` | Operation success/failure | `OK` / `ERROR` |
+
+#### 3. **Retrieval Monitoring** (`rag_search` span)
+
+Captures vector database search operations:
+
+| Attribute | Description | Example |
+|-----------|-------------|---------|
+| `search_limit` | Max documents to retrieve | `10` |
+| `search_type` | Search algorithm used | `hybrid` |
+| `search_fusion_alg` | Reranking method | `RRF` |
+| `retrieved_documents_count` | Actual docs found | `8` |
+| `documents` | Detailed results preview | JSON array with doc metadata |
+
+**Document Preview Structure:**
+```json
+[
+  {
+    "ranking": 1,
+    "answer": "Los 12 pasos son principios guía...",
+    "question": "¿Qué son los 12 pasos?",
+    "id": "faq_123",
+    "topic": "Programa de AA",
+    "source": "aa.org/es/12-pasos"
+  }
+]
+```
+
+#### 4. **LLM Generation Monitoring** (`llm.chat` span)
+
+Tracks language model invocations:
+
+| Attribute | Description | Example |
+|-----------|-------------|---------|
+| `llm.model` | Model identifier | `meta/llama-4-scout-17b-16e-instruct` |
+| `input.user_preview` | First 200 chars of prompt | User query |
+| `llm.prompt_tokens` | Tokens in input | `450` |
+| `llm.completion_tokens` | Tokens in output | `280` |
+| `llm.total_tokens` | Total token usage | `730` |
+| `llm.finish_reason` | Completion status | `stop` / `length` |
+| `llm.output_preview` | First 200 chars of response | Generated answer |
+
+#### 5. **User Feedback Monitoring** (`api.feedback` span)
+
+Collects user satisfaction data:
+
+| Attribute | Description | Example |
+|-----------|-------------|---------|
+| `feedback.value` | User rating | `positive` / `negative` |
+| `feedback.question_preview` | Original query | First 200 chars |
+| `feedback.answer_preview` | Bot response | First 200 chars |
+| `related_trace_id` | Links to original chat trace | `7f3b2a1c...` |
+
+### 🚀 Setting Up Monitoring
+
+#### **Start Phoenix Server**
+
+Phoenix runs as a Docker container alongside the application. It's already configured in `docker-compose.yml`:
+
+**Option A: Start Everything with Docker Compose (Recommended)**
+
+```bash
+docker compose up -d
+```
+
+This starts all services:
+- **FastAPI server** on port 8000
+- **Qdrant vector database** on port 6333
+- **Phoenix monitoring** on port 6006
+
+**Option B: Run Phoenix Separately (Development)**
+
+If you're running the FastAPI app locally but want Phoenix in Docker:
+
+```bash
+# Start only Phoenix
+docker compose up phoenix -d
+
+# Then run your app locally
+uv run uvicorn src.server.app:app --host 0.0.0.0 --port 8000 --reload
+```
+
+**Verify Phoenix is Running:**
+
+```bash
+# Check container status
+docker compose ps phoenix
+
+# Or visit the dashboard
+http://localhost:6006
+```
+
+Phoenix dashboard will be available at **http://localhost:6006**
+
+**Stopping Phoenix:**
+
+```bash
+# Stop all services
+docker compose down
+
+# Stop only Phoenix
+docker compose stop phoenix
+```
+
+### 📈 Monitoring Dashboard
+
+The Arize Phoenix dashboard provides:
+
+#### **Traces View**
+<img width="1353" height="913" alt="Monitoring dashboard, traces view" src="https://github.com/user-attachments/assets/b09679b9-be8e-4a28-9096-fdf9f45b0237" />
+
+- Real-time trace visualization
+- Waterfall charts showing span hierarchies
+- Performance bottleneck identification
+- Error tracking and debugging
+
+#### **Trace Details View**
+<img width="600" height="400" alt="Phoenix Monitoring dashboard, trace details" src="https://github.com/user-attachments/assets/ae56af85-2401-455f-a53f-205309875f43" />
+<img width="600" height="400" alt="Phoenix Monitoring dashboard, trace details" src="https://github.com/user-attachments/assets/2f8c8752-5cf6-430d-888b-427e2cd27ec1" />
+<img width="600" height="400" alt="Phoenix Monitoring dashboard, trace details" src="https://github.com/user-attachments/assets/d14463d0-7ae5-46f9-a90a-c6435428a86f" />
+
+Click any trace to see:
+- **Timeline**: Visual span waterfall
+- **Attributes**: All captured metadata
+- **Events**: Exceptions and log messages
+- **Relationships**: Parent-child span connections
+
+### 🔐 Privacy Considerations
+
+The monitoring system respects user privacy:
+
+- **No full message storage**: Only previews (first 200-500 chars) are logged
+- **No PII collection**: No names, emails, or personal identifiers
+- **Feedback linkage**: Trace IDs connect feedback without storing personal data
+
+### 📁 Monitoring Code Structure
+
+Traced files:
+```
+src/
+├── server/app.py           # API endpoints with tracing
+├── RAG/main.py            # RAG pipeline with nested spans
+└── LLM/main.py            # LLM generation with token tracking
+```
+
+### 🎯 Monitoring Objectives Checklist
+
+Based on LLM Zoomcamp evaluation criteria:
+
+| Objective | Implementation | Location |
+|-----------|----------------|----------|
+| **Trace API requests** | ✅ OpenTelemetry spans on `/chat` and `/feedback` | `src/server/app.py` |
+| **Monitor RAG pipeline** | ✅ Nested spans for retrieval + generation | `src/RAG/main.py` |
+| **Track LLM usage** | ✅ Token counts, model selection, latency | `src/LLM/main.py` |
+| **Capture user feedback** | ✅ Feedback endpoint linked to trace_id | `src/server/app.py` |
+| **Visualize traces** | ✅ Arize Phoenix dashboard | http://localhost:6006 |
+| **Debug issues** | ✅ Searchable traces with full context | Phoenix UI |
+| **Performance optimization** | ✅ Latency tracking per component | All traced spans |
+
+---
+
 ## 📸 Screenshots
 
 ### Main Interface
@@ -916,5 +1154,6 @@ If you or someone you know is struggling with alcohol use:
 <p align="center">
   <strong>Built with ❤️ to help people find information about recovery</strong>
 </p>
+
 
 
