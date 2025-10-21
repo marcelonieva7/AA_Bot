@@ -1,9 +1,7 @@
-# src/server/app.py
 import pathlib
 import logging
 import os
 
-# ⚠️ Configurar ANTES de cualquier import
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["ONNXRUNTIME_LOG_LEVEL"] = "4"
@@ -13,8 +11,10 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
+from opentelemetry.trace import Status, StatusCode
 from pydantic import BaseModel
 
+from src.monitoring.tracing import tracer
 
 # Logging
 logging.basicConfig(level=logging.INFO)
@@ -80,19 +80,31 @@ async def health():
         )
 
 @app.post("/chat")
-async def chat_endpoint(chat_request: ChatRequest):
-    try:
-        from src.RAG.main import rag
-        logger.info(f"📩 Query: {chat_request.query[:50]}...")
-        response = rag(
-            query=chat_request.query,
-            model=chat_request.model
-        )
-        logger.info("✅ Response generated")
-        return JSONResponse({"answer": response})
-    except Exception as e:
-        logger.error(f"❌ Error: {e}")
-        return JSONResponse({"error": str(e)}, status_code=500)
+async def chat_endpoint(chat_request: ChatRequest, request: Request):
+    with tracer.start_as_current_span("api.chat") as span:
+        if request.client:
+            span.set_attribute("request.client_ip", request.client.host)
+        span.set_attribute("chat.model", chat_request.model)
+        span.set_attribute("chat.query_preview", chat_request.query[:200])
+        span.set_attribute("chat.query_length", len(chat_request.query))
+        try:
+            from src.RAG.main import rag
+            logger.info(f"📩 Query: {chat_request.query[:50]}...")
+            response = rag(
+                query=chat_request.query,
+                model=chat_request.model
+            )
+            span.set_attribute("chat.response_preview", response[:200])
+            span.set_status(Status(StatusCode.OK))
+            logger.info("✅ Response generated")
+
+            return JSONResponse({"answer": response})
+        except Exception as e:
+            logger.error(f"❌ Error: {e}")
+            span.record_exception(e)
+            span.set_status(Status(StatusCode.ERROR))
+
+            return JSONResponse({"error": str(e)}, status_code=500)
 
 @app.get("/collections")
 async def list_collections():
