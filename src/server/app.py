@@ -15,7 +15,6 @@ from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from src.RAG.main import rag
 
 # Logging
 logging.basicConfig(level=logging.INFO)
@@ -83,6 +82,7 @@ async def health():
 @app.post("/chat")
 async def chat_endpoint(chat_request: ChatRequest):
     try:
+        from src.RAG.main import rag
         logger.info(f"📩 Query: {chat_request.query[:50]}...")
         response = rag(
             query=chat_request.query,
