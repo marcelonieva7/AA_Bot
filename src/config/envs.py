@@ -6,6 +6,7 @@ class Settings(BaseSettings):
   QDRANT_API_KEY: Union[str, None] = None
   NVIDIA_API_KEY: str
   NVIDIA_URL: str
+  EMBEDDINGS_URL: Union[str, None] = None
 
   model_config = SettingsConfigDict(
     env_file=".env",

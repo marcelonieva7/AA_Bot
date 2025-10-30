@@ -1,6 +1,7 @@
 from fastembed import SparseTextEmbedding
 from qdrant_client import QdrantClient, models
 from tqdm import tqdm
+from typing import Literal
 import os
 import logging
 
@@ -9,9 +10,12 @@ os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["ONNXRUNTIME_LOG_LEVEL"] = "4"
 
+from src.config.embeddings import get_embeddings
 from src.config.envs import settings
 
 logger = logging.getLogger(__name__)
+
+Mode = Literal["local"] | Literal["online"]
 
 class Qdrant_DB():
     def __init__(self, qdrant_url, qdrant_api_key, collection, dense_model, sparse_model_name):
@@ -106,30 +110,31 @@ class Qdrant_DB():
         )
         return [r.payload for r in results.points]
 
-    def _build_semantic_args(self, query, limit):
+    def _build_semantic_args(self, query, limit, embeddings=None):
+        local_embeddings = models.Document(
+            text=query,
+            model=self.dense_model['name']
+        )        
         args = {
             'limit': limit,
-            'query': models.Document(
-                text=query,
-                model=self.dense_model['name']
-            ),
+            'query': embeddings['dense'] if embeddings else local_embeddings,
             'using': "dense"
         }
         return args
 
-    def _build_lexical_args(self, query, limit):
-        sparse_embeddings = list(self.sparse_model.embed(query))[0]
+    def _build_lexical_args(self, query, limit, embeddings=None):
+        local_embeddings = list(self.sparse_model.embed(query))[0]
         args = {
             'limit': limit,
             'query': models.SparseVector(
-                indices=sparse_embeddings.indices.tolist(),
-                values=sparse_embeddings.values.tolist(),
+                indices=embeddings['sparse']['indices'] if embeddings else local_embeddings.indices.tolist(),
+                values=embeddings['sparse']['values'] if embeddings else local_embeddings.values.tolist(),
             ),
             'using': "sparse"
         }
         return args
 
-    def _build_hybrid_args(self, query, limit, fusion_type):
+    def _build_hybrid_args(self, query, limit, fusion_type, embeddings_mode):
         fusion = None
         match fusion_type:
             case 'DBSF':
@@ -139,8 +144,10 @@ class Qdrant_DB():
             case _:
                 raise Exception(f'invalid fusion type {fusion_type}')
 
-        semantic = self._build_semantic_args(query, limit=limit*2)
-        lexical = self._build_lexical_args(query, limit=limit*2)
+        embeddings = None if embeddings_mode == 'local' else get_embeddings(query)
+
+        semantic = self._build_semantic_args(query, limit=limit*2, embeddings=embeddings)
+        lexical = self._build_lexical_args(query, limit=limit*2, embeddings=embeddings)
         args = {
             'prefetch': [
                 models.Prefetch(**semantic),
@@ -151,15 +158,15 @@ class Qdrant_DB():
         }
         return args
 
-    def search(self, query_txt, limit=5, type='semantic', fusion='DBSF'):
+    def search(self, query_txt, limit=5, type='semantic', fusion='DBSF', embeddings_mode: Mode="local"):
         args = {}
         match type:
             case 'semantic':
-                args = self._build_semantic_args(query_txt, limit)
+                args = self._build_semantic_args(query_txt, limit, embeddings_mode)
             case 'lexical':
-                args = self._build_lexical_args(query_txt, limit)
+                args = self._build_lexical_args(query_txt, limit, embeddings_mode)
             case 'hybrid':
-                args = self._build_hybrid_args(query_txt, limit, fusion)
+                args = self._build_hybrid_args(query_txt, limit, fusion, embeddings_mode)
             case _:
                 raise Exception(f'invalid search type {type}')
 

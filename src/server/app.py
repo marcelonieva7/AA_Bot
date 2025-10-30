@@ -92,7 +92,8 @@ async def chat_endpoint(chat_request: ChatRequest, request: Request):
             logger.info(f"📩 Query: {chat_request.query[:50]}...")
             response = rag(
                 query=chat_request.query,
-                model=chat_request.model
+                model=chat_request.model,
+                embeddings_mode='online'
             )
             span.set_attribute("chat.response_preview", response[:200])
             span.set_status(Status(StatusCode.OK))

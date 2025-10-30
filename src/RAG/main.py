@@ -1,10 +1,14 @@
+from typing import Literal
+
 from opentelemetry.trace import Status, StatusCode
 
 from src.LLM.main import chat
 from src.monitoring.tracing import tracer
 from src.RAG.prompts import system_prompt_v1
 
-def rag(query, model='meta/llama-4-scout-17b-16e-instruct'):
+Mode = Literal["local"] | Literal["online"]
+
+def rag(query, model='meta/llama-4-scout-17b-16e-instruct', embeddings_mode: Mode='local'):
     from src.config.db import qdrant_db
 
     with tracer.start_as_current_span("rag.pipeline") as span:
@@ -15,7 +19,7 @@ def rag(query, model='meta/llama-4-scout-17b-16e-instruct'):
                 limit=10
                 search_type='hybrid'
                 fusion='RRF'
-                retrival = qdrant_db.search(query, limit=limit, type=search_type, fusion=fusion)
+                retrival = qdrant_db.search(query, limit=limit, type=search_type, fusion=fusion, embeddings_mode=embeddings_mode)
 
                 db_span.set_attribute("search_limit", limit)
                 db_span.set_attribute("search_type", search_type)
